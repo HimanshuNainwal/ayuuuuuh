@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Video Animation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Basic CSS Reset and Body Styling */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111827;
+            /* Dark background */
+            font-family: 'Inter', sans-serif;
+            color: #f0f0f0;
+        }
+
+        /* Main container to center content */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Styling for the animated text */
+        #animated-text {
+            font-weight: 900;
+            /* Bold font weight for impact */
+            transition: font-size 0.5s ease-in-out;
+            /* Smooth font size transition */
+            cursor: default;
+            text-align: center;
+        }
+
+        /* Individual letter styling */
+        #animated-text span {
+            transition: color 0.5s ease-in-out;
+            /* Smooth color transition for each letter */
+        }
+
+        /* Styling for the video player */
+        #video-player {
+            display: none;
+            /* Initially hidden */
+            /* width: 50%; */
+            height: 100%;
+            object-fit: cover;
+            /* Ensures video covers the container */
+        }
+
+        /* Styling for the final message */
+        #end-message {
+            display: none;
+            /* Initially hidden */
+            font-size: 2rem;
+            font-weight: bold;
+            color: #9CA3AF;
+            /* Muted color */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- The text to be animated. Each letter is in a span for individual coloring. -->
+        <div id="animated-text">
+            <span>A</span><span>a</span><span>a</span><span>a</span><span>Y</span><span>u</span><span>s</span><span>h</span>
+        </div>
+
+        <!-- The video player. The 'muted' and 'playsinline' attributes are important for autoplay in many browsers. -->
+        <video id="video-player" muted playsinline>
+            <!-- IMPORTANT: Replace this placeholder with a direct URL to your video file. Local paths like './Ayush.mp4' will not work here. -->
+            <source src="./Ayush.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <!-- Message to show when the 10-minute session ends -->
+        <div id="end-message">Session Ended</div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const textContainer = document.getElementById('animated-text');
+        const letterSpans = textContainer.querySelectorAll('span');
+        const videoPlayer = document.getElementById('video-player');
+        const endMessage = document.getElementById('end-message');
+
+        // --- Animation Configuration ---
+        const START_FONT_SIZE = 12; // in pixels
+        const ANIMATION_INTERVAL_MS = 1000; // 1 second
+        const TOTAL_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+        const MOBILE_BREAKPOINT = 768; // Screen width in pixels for mobile view
+
+        // --- State Variables ---
+        let currentFontSize = START_FONT_SIZE;
+        let textAnimationInterval; // To hold the ID of the setInterval
+
+        /**
+         * Generates a random vibrant hex color code.
+         * @returns {string} A hex color string (e.g., "#FF5733").
+         */
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        /**
+         * Applies a new random color to each letter in the text.
+         */
+        function updateLetterColors() {
+            letterSpans.forEach(span => {
+                // We don't color the space
+                if (span.innerHTML.trim() !== '') {
+                    span.style.color = getRandomColor();
+                }
+            });
+        }
+
+        /**
+         * Starts the text growth animation, adjusting for screen size.
+         */
+        function startTextAnimation() {
+            // --- Determine animation parameters based on screen size (Responsiveness) ---
+            const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+            const endFontSize = isMobile ? 180 : 400;
+            const fontSizeIncrement = isMobile ? 20 : 40; // UPDATED FONT INCREMENT VALUES
+
+            // Reset state for the new loop
+            currentFontSize = START_FONT_SIZE;
+            textContainer.style.fontSize = `${currentFontSize}px`;
+            updateLetterColors();
+
+            // Make sure text is visible and video is hidden
+            videoPlayer.style.display = 'none';
+            textContainer.style.display = 'block';
+
+            // Clear any previous interval to prevent duplicates
+            clearInterval(textAnimationInterval);
+
+            // Start the animation loop
+            textAnimationInterval = setInterval(() => {
+                // Stop condition for this loop
+                if (currentFontSize >= endFontSize) {
+                    clearInterval(textAnimationInterval);
+                    playVideo();
+                    return;
+                }
+
+                // Increment size and update styles
+                currentFontSize += fontSizeIncrement;
+                textContainer.style.fontSize = `${currentFontSize}px`;
+                updateLetterColors();
+
+            }, ANIMATION_INTERVAL_MS);
+        }
+
+        /**
+         * Hides the text and plays the video.
+         */
+        function playVideo() {
+            textContainer.style.display = 'none';
+            videoPlayer.style.display = 'block';
+            videoPlayer.currentTime = 0; // Rewind video to the start
+            videoPlayer.play().catch(error => {
+                console.error("Video autoplay failed:", error);
+                // If autoplay fails, immediately loop back to the text.
+                startTextAnimation();
+            });
+        }
+
+        /**
+         * The function to call when the video finishes playing.
+         * This restarts the text animation, creating the loop.
+         */
+        function handleVideoEnd() {
+            startTextAnimation();
+        }
+
+        /**
+         * Stops all animations and displays the end message.
+         */
+        function stopEverything() {
+            // Stop any ongoing text animation
+            clearInterval(textAnimationInterval);
+
+            // Stop the video
+            videoPlayer.pause();
+
+            // Remove the event listener to prevent looping after the timeout
+            videoPlayer.removeEventListener('ended', handleVideoEnd);
+
+            // Hide all active elements and show the final message
+            textContainer.style.display = 'none';
+            videoPlayer.style.display = 'none';
+            endMessage.style.display = 'block';
+            console.log("10-minute session has ended.");
+        }
+
+        // --- Initial Setup ---
+
+        // Add the event listener for when the video finishes
+        videoPlayer.addEventListener('ended', handleVideoEnd);
+
+        // Set a master timeout to stop the entire process after 10 minutes
+        setTimeout(stopEverything, TOTAL_DURATION_MS);
+
+        // Kick off the very first animation cycle when the page loads
+        startTextAnimation();
+
+    </script>
+</body>
+
+</html>
